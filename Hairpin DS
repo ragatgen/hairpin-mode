@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: hairpin-fix
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: hairpin-fix
+  template:
+    metadata:
+      labels:
+        app: hairpin-fix
+    spec:
+      hostNetwork: true
+      hostPID: true
+      tolerations:
+      - operator: Exists
+      containers:
+      - name: hairpin-fix
+        image: mcr.microsoft.com/aks/fundamental/base-ubuntu:v0.0.11
+        securityContext:
+          privileged: true
+        command:
+        - /bin/bash
+        - -lc
+        - |
+          while true; do
+            if [ -f /host-sys/class/net/cbr0/bridge/nf_call_iptables ]; then
+              echo 1 > /host-sys/class/net/cbr0/bridge/nf_call_iptables || true
+            fi
+
+            for f in /host-sys/class/net/*/brport/hairpin_mode; do
+              [ -f "$f" ] || continue
+              echo 1 > "$f" || true
+            done
+
+            sleep 10
+          done
+        volumeMounts:
+        - name: host-sys
+          mountPath: /host-sys
+      volumes:
+      - name: host-sys
+        hostPath:
+          path: /sys
+          type: Directory
