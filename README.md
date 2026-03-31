@@ -61,7 +61,6 @@ After (Hairpin Enabled – Working Path)
 flowchart LR
 ```bash
     A[Pod A<br>10.244.0.10] -->|curl hairpin-test-svc| B[Service ClusterIP<br>10.0.225.178]
-```
 
     B -->|kube-proxy DNAT| C[Pod A Endpoint<br>10.244.0.10]
 
@@ -72,16 +71,16 @@ flowchart LR
     E --> F[Pod A Receives Response]
 
     F --> G[HTTP 200 OK ✅]
-
+```
     
 
-Test Matrix
+#Test Matrix
 Configuration	Result
 AKS 1.35 + Kubenet + Ubuntu 24.04	❌ Fails
 AKS 1.35 + Azure CNI Overlay + Ubuntu 24.04	✅ Works
 AKS 1.34 + Kubenet + Ubuntu 22.04	✅ Works
 
-Root Cause
+#Root Cause
 
 This issue is caused by disabled hairpin networking behavior at the node level.
 
@@ -96,13 +95,13 @@ NAT return path
 veth interface hairpin mode
 Observed Node State
 
-Create a node debugger:
+#Create a node debugger:
 ```bash
 kubectl debug node/aks-nodepool1-36079231-vmss000002 -it --image=mcr.microsoft.com/aks/fundamental/base-ubuntu:v0.0.11
 
 ```
 
-Then Run:
+#Then Run:
 ```bash
 
 cat /sys/class/net/cbr0/bridge/nf_call_iptables
@@ -114,14 +113,14 @@ for i in /sys/class/net/*/brport/hairpin_mode; do echo "$i: $(cat $i)"; done
 
 ```
 
-This indicates:
+#This indicates:
 
 Hairpin forwarding is disabled
 Bridge traffic is not processed through iptables
 
 
 
-Validation
+#Validation
 
 We applied a controlled change at the node level using a DaemonSet.
 
@@ -177,7 +176,7 @@ spec:
           type: Directory
 ```
 
-Result
+#Result
 
 After applying the DaemonSet:
 
@@ -240,7 +239,7 @@ randra@Lenovo-WorkRG:~/databricks-lab$
 ```
 
 
-Conclusion
+#Conclusion
 The issue is not related to the application
 The issue is not related to DNS or Service configuration
 The issue is caused by disabled hairpin behavior in kubenet datapath
@@ -250,7 +249,7 @@ Ubuntu 24.04
 kubenet
 Important Disclaimer
 
-⚠️ The DaemonSet workaround:
+#The DaemonSet workaround:
 
 Modifies node runtime state
 Is not persistent across:
@@ -266,7 +265,7 @@ Validation
 Root cause confirmation
 Recommended Solution
 
-Move away from kubenet.
+#Move away from kubenet.
 
 Preferred
 Azure CNI Overlay
