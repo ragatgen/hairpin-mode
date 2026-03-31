@@ -32,9 +32,9 @@ Why This Happens (Root Cause)
 1. Kubernetes Service Flow
 
 When a pod calls a Service:
-
+```bash
 Pod → Service VIP → kube-proxy → DNAT → Pod Endpoint
-
+```
     
 Explanation
 Pod calls its own Service
@@ -51,8 +51,6 @@ Example:
 ```bash
 
 curl http://hairpin-test-svc
-
-
 
 ```
 # hangs or times out
