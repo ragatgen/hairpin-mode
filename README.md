@@ -59,7 +59,9 @@ After (Hairpin Enabled – Working Path)
 
 
 flowchart LR
+```bash
     A[Pod A<br>10.244.0.10] -->|curl hairpin-test-svc| B[Service ClusterIP<br>10.0.225.178]
+```
 
     B -->|kube-proxy DNAT| C[Pod A Endpoint<br>10.244.0.10]
 
