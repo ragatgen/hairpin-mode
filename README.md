@@ -1,4 +1,4 @@
-AKS 1.35 Kubenet Hairpin Networking Issue (Pod → Own Service Failure)
+AKS 1.35 Kubenet Hairpin Issue – Why Pod-to-Own-Service Fails and How to Fix It
 Overview
 
 While validating workloads on Azure Kubernetes Service (AKS) 1.35, we identified a networking issue affecting clusters using:
@@ -6,25 +6,34 @@ While validating workloads on Azure Kubernetes Service (AKS) 1.35, we identified
 Kubenet
 Ubuntu 24.04 node images
 
-In this configuration, pods are unable to reach their own Service ClusterIP, resulting in connection timeouts.
+In this configuration, a pod cannot reach its own Service ClusterIP, resulting in connection timeouts.
 
-This issue is not application-specific, but becomes visible in workloads that rely on self-referential Service access (e.g., SAS Viya).
+This is not an application issue—it is a network datapath behavior related to hairpin traffic handling.
 
-Symptoms
-Pod resolves Service DNS correctly
-Service and endpoints are configured correctly
-Requests from a pod to its own Service fail with timeout
+What is the Problem?
+Symptom
 
-flowchart LR
-    A[Pod A<br>10.244.0.10] -->|curl hairpin-test-svc| B[Service ClusterIP<br>10.0.225.178]
+From inside a pod:
 
-    B -->|kube-proxy DNAT| C[Pod A Endpoint<br>10.244.0.10]
+curl http://my-service
 
-    C -->|Return Path| D[Node Bridge cbr0]
+Result:
 
-    D -->|hairpin_mode=0<br>nf_call_iptables=0| E[DROP / No Return Path]
+Connection timed out
 
-    E --> F[Connection Timeout ❌]
+But:
+
+DNS resolves correctly ✅
+Service exists and endpoints are correct ✅
+Same setup works on:
+AKS 1.34 + kubenet
+AKS 1.35 + Azure CNI Overlay
+Why This Happens (Root Cause)
+1. Kubernetes Service Flow
+
+When a pod calls a Service:
+
+Pod → Service VIP → kube-proxy → DNAT → Pod Endpoint
 
     
 Explanation
@@ -38,12 +47,15 @@ Result: timeout
 
 
 Example:
+
 ```bash
 
 curl http://hairpin-test-svc
-# hangs or times out
+
+
 
 ```
+# hangs or times out
 
 After (Hairpin Enabled – Working Path)
 
